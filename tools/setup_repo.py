@@ -407,17 +407,51 @@ def setup(root, patches, jobs=4, *, bootstrap=True):
         for raw in changed:
             if not raw:
                 continue
-            abs_path = (source / os.fsdecode(raw)).resolve()
-            if abs_path not in restored_files:
-                raise SetupError(f'Uncommitted local changes in {source} would be overwritten by submodule update: {abs_path}')
+            rel_name = os.fsdecode(raw)
+            abs_path = (source / rel_name).resolve()
+            # Allow files we just wrote as part of migration
+            if abs_path in restored_files:
+                continue
+            # Allow files that already match the managed post-patch checksum.
+            allowed = False
+            entry = next((e for e in patches.entries if e['path'] == module['path']), None)
+            if entry:
+                for item in entry['files']:
+                    if item['path'] == rel_name:
+                        try:
+                            cur = file_hash(abs_path)
+                        except SetupError:
+                            cur = 'absent'
+                        if cur == item['after_sha256']:
+                            allowed = True
+                        break
+            if allowed:
+                continue
+            raise SetupError(f'Uncommitted local changes in {source} would be overwritten by submodule update: {abs_path}')
         # Staged changes
         staged = git(source, 'diff', '--cached', '--name-only', '-z', check=False).stdout.split(b'\0')
         for raw in staged:
             if not raw:
                 continue
-            abs_path = (source / os.fsdecode(raw)).resolve()
-            if abs_path not in restored_files:
-                raise SetupError(f'Staged local changes in {source} would be overwritten by submodule update: {abs_path}')
+            rel_name = os.fsdecode(raw)
+            abs_path = (source / rel_name).resolve()
+            if abs_path in restored_files:
+                continue
+            allowed = False
+            entry = next((e for e in patches.entries if e['path'] == module['path']), None)
+            if entry:
+                for item in entry['files']:
+                    if item['path'] == rel_name:
+                        try:
+                            cur = file_hash(abs_path)
+                        except SetupError:
+                            cur = 'absent'
+                        if cur == item['after_sha256']:
+                            allowed = True
+                        break
+            if allowed:
+                continue
+            raise SetupError(f'Staged local changes in {source} would be overwritten by submodule update: {abs_path}')
 
     # Attempt a bulk submodule update first. If that fails (network interruption,
     # transient failure), try per-module updates so we can make progress and
