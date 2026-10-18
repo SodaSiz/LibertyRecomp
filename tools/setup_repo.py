@@ -42,6 +42,8 @@ def git(root, *args, **kwargs):
 
 def digest(data):
     # Normalize to LF line endings before hashing so checksums are stable
+    if data is None:
+        return 'absent'
     return hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest()
 
 
@@ -389,22 +391,59 @@ def setup(root, patches, jobs=4, *, bootstrap=True):
         else:
             path.write_bytes(data)
 
-    # Before attempting to update submodules, ensure no uncommitted/staged
-    # changes in initialized submodules would be overwritten by the checkout.
+    # Build set of restored files so pre-update checks ignore those expected diffs.
+    restored_files = {path.resolve() for path, _ in actions}
+
+    # Before attempting to update submodules, ensure there are no unexpected
+    # uncommitted or staged changes in initialized submodules that would be
+    # overwritten by the checkout. Changes we just wrote as part of the
+    # migration_plan are allowed.
     for parent, module in modules:
         source = source_path(parent, module['path'])
         if not initialized(source):
             continue
-        # If there are uncommitted or staged changes, fail with a clear message
-        if git(source, 'diff', '--quiet', check=False).returncode != 0 or \
-           git(source, 'diff', '--cached', '--quiet', check=False).returncode != 0:
-            raise SetupError(
-                f'Local changes in {source} would be overwritten by submodule update. '
-                'Commit or stash them before running tools/setup_repo.py.')
+        # Unstaged changed files (null-separated)
+        changed = git(source, 'diff', '--name-only', '-z', check=False).stdout.split(b'\0')
+        for raw in changed:
+            if not raw:
+                continue
+            abs_path = (source / os.fsdecode(raw)).resolve()
+            if abs_path not in restored_files:
+                raise SetupError(f'Uncommitted local changes in {source} would be overwritten by submodule update: {abs_path}')
+        # Staged changes
+        staged = git(source, 'diff', '--cached', '--name-only', '-z', check=False).stdout.split(b'\0')
+        for raw in staged:
+            if not raw:
+                continue
+            abs_path = (source / os.fsdecode(raw)).resolve()
+            if abs_path not in restored_files:
+                raise SetupError(f'Staged local changes in {source} would be overwritten by submodule update: {abs_path}')
 
-    git(root, 'submodule', 'sync', '--recursive', capture=False)
-    git(root, '-c', 'submodule.recurse=false', 'submodule', 'update', '--init',
-        '--recursive', '--checkout', '--depth', '1', '--jobs', str(jobs), capture=False)
+    # Attempt a bulk submodule update first. If that fails (network interruption,
+    # transient failure), try per-module updates so we can make progress and
+    # allow a later invocation to resume cleanly.
+    try:
+        git(root, 'submodule', 'sync', '--recursive', capture=False)
+        git(root, '-c', 'submodule.recurse=false', 'submodule', 'update', '--init',
+            '--recursive', '--checkout', '--depth', '1', '--jobs', str(jobs), capture=False)
+    except SetupError as e:
+        print(f'Warning: bulk submodule update failed: {e}', flush=True)
+        last_error = None
+        for parent, module in modules:
+            path = module['path']
+            source = source_path(parent, path)
+            if not initialized(source):
+                continue
+            try:
+                # Try updating this module individually (jobs=1 to limit concurrency)
+                git(root, '-c', 'submodule.recurse=false', 'submodule', 'update', '--init',
+                    '--recursive', '--checkout', '--depth', '1', '--jobs', '1', path, capture=False)
+            except SetupError as e2:
+                print(f'Failed to update submodule {path}: {e2}', flush=True)
+                last_error = e2
+        if last_error:
+            raise SetupError(f'Submodule update failed; some modules could not be updated: {last_error}')
+
     inventory(root, require_ready=True)
     patches.prepare()
     if bootstrap:
