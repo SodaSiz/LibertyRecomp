@@ -1,0 +1,13 @@
+# Simple compatibility wrapper for legacy FindPythonInterp
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+  set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE} CACHE FILEPATH "Path to Python3 executable" FORCE)
+  set(PythonInterp_FOUND TRUE)
+else()
+  find_program(PYTHON_EXECUTABLE NAMES python3 python)
+  if(PYTHON_EXECUTABLE)
+    set(PythonInterp_FOUND TRUE)
+  else()
+    set(PythonInterp_FOUND FALSE)
+  endif()
+endif()
