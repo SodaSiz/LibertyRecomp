@@ -28,6 +28,44 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      # POSIX (Linux / macOS) safe.directory
+      - name: Mark workspace safe for Git (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          TARGET="${GITHUB_WORKSPACE:-$(pwd)}"
+          echo "Marking git safe.directory for: $TARGET"
+          git config --global --add safe.directory "$TARGET" || true
+          if [ "$(id -u)" = "0" ]; then
+            git config --system --add safe.directory "$TARGET" || true
+          fi
+          echo "git safe.directory entries:"
+          git config --get-all safe.directory || true
+          echo "git config (first lines):"
+          git config --list --show-origin | sed -n '1,120p' || true
+
+      # Windows safe.directory (PowerShell)
+      - name: Mark workspace safe for Git (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $target = $Env:GITHUB_WORKSPACE
+          if (-not $target) { $target = (Get-Location).Path }
+          Write-Host "Marking git safe.directory for: $target"
+          git config --global --add safe.directory $target
+          try {
+            git config --system --add safe.directory $target
+          } catch {
+            Write-Host "git config --system failed (expected on non-admin): $_"
+          }
+          Write-Host "git safe.directory entries:"
+          git config --get-all safe.directory | ForEach-Object { Write-Host $_ }
+          Write-Host "git config (first lines):"
+          git config --list --show-origin | Select-Object -First 120 | ForEach-Object { Write-Host $_ }
+
+      - name: Quick Python syntax check
+        run: python -m py_compile tools/setup_repo.py
+
       - name: Validate tracked paths, submodule mappings and patch pins
         run: python tools/setup_repo.py --check-metadata
       - name: Exercise clone, pull, migration and recovery with local test remotes
@@ -54,6 +92,42 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Mark workspace safe for Git (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          TARGET="${GITHUB_WORKSPACE:-$(pwd)}"
+          echo "Marking git safe.directory for: $TARGET"
+          git config --global --add safe.directory "$TARGET" || true
+          if [ "$(id -u)" = "0" ]; then
+            git config --system --add safe.directory "$TARGET" || true
+          fi
+          echo "git safe.directory entries:"
+          git config --get-all safe.directory || true
+          echo "git config (first lines):"
+          git config --list --show-origin | sed -n '1,120p' || true
+
+      - name: Mark workspace safe for Git (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $target = $Env:GITHUB_WORKSPACE
+          if (-not $target) { $target = (Get-Location).Path }
+          Write-Host "Marking git safe.directory for: $target"
+          git config --global --add safe.directory $target
+          try {
+            git config --system --add safe.directory $target
+          } catch {
+            Write-Host "git config --system failed (expected on non-admin): $_"
+          }
+          Write-Host "git safe.directory entries:"
+          git config --get-all safe.directory | ForEach-Object { Write-Host $_ }
+          Write-Host "git config (first lines):"
+          git config --list --show-origin | Select-Object -First 120 | ForEach-Object { Write-Host $_ }
+
+      - name: Quick Python syntax check
+        run: python -m py_compile tools/setup_repo.py
+
       - name: Install current CMake and Ninja
         run: python -m pip install 'cmake>=3.29,<5' ninja
       - name: Install Linux prerequisites
@@ -100,13 +174,28 @@ jobs:
             autoconf automake libtool gtk3 libx11 libxrandr libxcursor libxi libxinerama libxext \
             libxkbcommon wayland wayland-protocols libdecor alsa-lib libpulse dbus libusb \
             openssl vulkan-icd-loader vulkan-headers nasm
+
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Mark workspace safe for Git
-        run: git config --global --add safe.directory "${{ github.workspace || env.PWD }}"
+
+      - name: Mark workspace safe for Git (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          TARGET="${GITHUB_WORKSPACE:-$(pwd)}"
+          echo "Marking git safe.directory for: $TARGET"
+          git config --global --add safe.directory "$TARGET" || true
+          if [ "$(id -u)" = "0" ]; then
+            git config --system --add safe.directory "$TARGET" || true
+          fi
+          echo "git safe.directory entries:"
+          git config --get-all safe.directory || true
+          echo "git config (first lines):"
+          git config --list --show-origin | sed -n '1,120p' || true
+
       - name: Quick Python syntax check
         run: python -m py_compile tools/setup_repo.py
+
       - name: Initialize and validate all dependency sources
         run: |
           python tools/setup_repo.py
