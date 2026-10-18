@@ -41,6 +41,7 @@ def git(root, *args, **kwargs):
 
 
 def digest(data):
+    # Normalize to LF line endings before hashing so checksums are stable
     return hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest()
 
 
@@ -215,7 +216,9 @@ class Patches:
                 raise SetupError(f'Duplicate patched dependency: {entry["path"]}')
             paths.add(entry['path'])
             patch = source_path(self.directory, entry['patch'])
-            if hashlib.sha256(patch.read_bytes()).hexdigest() != entry['sha256']:
+            # Normalize line endings when computing the patch checksum so that
+            # checkouts with differing EOL configuration don't break validation.
+            if digest(patch.read_bytes()) != entry['sha256']:
                 raise SetupError(f'Dependency patch checksum mismatch: {patch}')
             names = set()
             for item in entry['files']:
@@ -385,6 +388,20 @@ def setup(root, patches, jobs=4, *, bootstrap=True):
             path.unlink()
         else:
             path.write_bytes(data)
+
+    # Before attempting to update submodules, ensure no uncommitted/staged
+    # changes in initialized submodules would be overwritten by the checkout.
+    for parent, module in modules:
+        source = source_path(parent, module['path'])
+        if not initialized(source):
+            continue
+        # If there are uncommitted or staged changes, fail with a clear message
+        if git(source, 'diff', '--quiet', check=False).returncode != 0 or \
+           git(source, 'diff', '--cached', '--quiet', check=False).returncode != 0:
+            raise SetupError(
+                f'Local changes in {source} would be overwritten by submodule update. '
+                'Commit or stash them before running tools/setup_repo.py.')
+
     git(root, 'submodule', 'sync', '--recursive', capture=False)
     git(root, '-c', 'submodule.recurse=false', 'submodule', 'update', '--init',
         '--recursive', '--checkout', '--depth', '1', '--jobs', str(jobs), capture=False)
