@@ -153,12 +153,37 @@ jobs:
           python tools/setup_repo.py
           python tools/setup_repo.py --check
           python tools/test_dependency_patches.py
+
+      - name: Ensure compatibility module for legacy FindPythonInterp
+        run: |
+          mkdir -p cmake/Modules
+          cat > cmake/Modules/FindPythonInterp.cmake <<'EOF'
+          # Compatibility wrapper for legacy FindPythonInterp
+          find_package(Python3 COMPONENTS Interpreter QUIET)
+          if(Python3_Interpreter_FOUND)
+            set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE} CACHE FILEPATH "Path to Python3 executable" FORCE)
+            set(PythonInterp_FOUND TRUE)
+          else()
+            find_package(Python COMPONENTS Interpreter QUIET)
+            if(Python_Interpreter_FOUND)
+              set(PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE} CACHE FILEPATH "Path to Python executable" FORCE)
+              set(PythonInterp_FOUND TRUE)
+            else()
+              find_program(PYTHON_EXECUTABLE NAMES python3 python python2)
+              if(PYTHON_EXECUTABLE)
+                set(PythonInterp_FOUND TRUE)
+              else()
+                set(PythonInterp_FOUND FALSE)
+              endif()
+            endif()
+          endif()
+          EOF
       - name: Configure desktop
         if: runner.os != 'macOS'
-        run: cmake --preset ${{ matrix.preset }}
+        run: cmake --preset ${{ matrix.preset }} -DCMAKE_MODULE_PATH="${{ github.workspace }}/cmake/Modules"
       - name: Configure native macOS architecture
         if: runner.os == 'macOS'
-        run: cmake --preset ${{ matrix.preset }} -DCMAKE_OSX_ARCHITECTURES="$(uname -m)"
+        run: cmake --preset ${{ matrix.preset }} -DCMAKE_MODULE_PATH="${{ github.workspace }}/cmake/Modules" -DCMAKE_OSX_ARCHITECTURES="$(uname -m)"
       - name: Build application from checked-in generated sources
         run: cmake --build --preset ${{ matrix.preset }} --target LibertyRecomp --parallel 2
 
@@ -201,9 +226,35 @@ jobs:
           python tools/setup_repo.py
           python tools/setup_repo.py --check
           cmake --version
+
+      - name: Ensure compatibility module for legacy FindPythonInterp
+        run: |
+          mkdir -p cmake/Modules
+          cat > cmake/Modules/FindPythonInterp.cmake <<'EOF'
+          # Compatibility wrapper for legacy FindPythonInterp
+          find_package(Python3 COMPONENTS Interpreter QUIET)
+          if(Python3_Interpreter_FOUND)
+            set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE} CACHE FILEPATH "Path to Python3 executable" FORCE)
+            set(PythonInterp_FOUND TRUE)
+          else()
+            find_package(Python COMPONENTS Interpreter QUIET)
+            if(Python_Interpreter_FOUND)
+              set(PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE} CACHE FILEPATH "Path to Python executable" FORCE)
+              set(PythonInterp_FOUND TRUE)
+            else()
+              find_program(PYTHON_EXECUTABLE NAMES python3 python python2)
+              if(PYTHON_EXECUTABLE)
+                set(PythonInterp_FOUND TRUE)
+              else()
+                set(PythonInterp_FOUND FALSE)
+              endif()
+            endif()
+          endif()
+          EOF
+
       - name: Configure with the system CMake and build
         env:
           VCPKG_BINARY_SOURCES: clear
         run: |
-          cmake --preset linux-release
+          cmake --preset linux-release -DCMAKE_MODULE_PATH="${{ github.workspace }}/cmake/Modules"
           cmake --build --preset linux-release --target LibertyRecomp --parallel 2
