@@ -15,7 +15,11 @@
                     "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                     "type": "FILEPATH"
                 },
-                "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
+                "CMAKE_MODULE_PATH": {
+                    "value": "${sourceDir}/cmake/Modules",
+                    "type": "PATH"
+                }
             },
             "environment": {
                 "VCPKG_ROOT": "${sourceDir}/thirdparty/vcpkg",
@@ -109,7 +113,11 @@
                     "type": "STRING"
                 },
                 "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/toolchains/linux-clang.cmake",
-                "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
+                "CMAKE_MODULE_PATH": {
+                    "value": "${sourceDir}/cmake/Modules",
+                    "type": "PATH"
+                }
             },
             "environment": {
                 "VCPKG_ROOT": "${sourceDir}/thirdparty/vcpkg",
@@ -161,7 +169,11 @@
                 "CMAKE_OSX_ARCHITECTURES": "arm64",
                 "CMAKE_OSX_DEPLOYMENT_TARGET": "26.0",
                 "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/FindHostLLVM.cmake"
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/FindHostLLVM.cmake",
+                "CMAKE_MODULE_PATH": {
+                    "value": "${sourceDir}/cmake/Modules",
+                    "type": "PATH"
+                }
             },
             "condition": {
                 "type": "equals",
