@@ -179,10 +179,31 @@ jobs:
           EOF
       - name: Configure desktop
         if: runner.os != 'macOS'
-        run: cmake --preset ${{ matrix.preset }} -DCMAKE_MODULE_PATH="${{ github.workspace }}/cmake/Modules"
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake --preset ${{ matrix.preset }} \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_EXTENSIONS=OFF \
+            -DCMAKE_MODULE_PATH="${{ github.workspace }}/cmake/Modules"
       - name: Configure native macOS architecture
         if: runner.os == 'macOS'
-        run: cmake --preset ${{ matrix.preset }} -DCMAKE_MODULE_PATH="${{ github.workspace }}/cmake/Modules" -DCMAKE_OSX_ARCHITECTURES="$(uname -m)"
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake --preset ${{ matrix.preset }} \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_EXTENSIONS=OFF \
+            -DCMAKE_MODULE_PATH="${{ github.workspace }}/cmake/Modules" \
+            -DCMAKE_OSX_ARCHITECTURES="$(uname -m)"
       - name: Build application from checked-in generated sources
         run: cmake --build --preset ${{ matrix.preset }} --target LibertyRecomp --parallel 2
 
@@ -254,6 +275,14 @@ jobs:
       - name: Configure with the system CMake and build
         env:
           VCPKG_BINARY_SOURCES: clear
+          CC: clang
+          CXX: clang++
         run: |
-          cmake --preset linux-release -DCMAKE_MODULE_PATH="${{ github.workspace }}/cmake/Modules"
+          cmake --preset linux-release \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_EXTENSIONS=OFF \
+            -DCMAKE_MODULE_PATH="${{ github.workspace }}/cmake/Modules"
           cmake --build --preset linux-release --target LibertyRecomp --parallel 2
