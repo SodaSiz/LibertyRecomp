@@ -135,11 +135,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang-18 lld-18 build-essential pkg-config curl zip unzip \
-            autoconf automake libtool libgtk-3-dev libx11-dev libxrandr-dev libxcursor-dev \
-            libxi-dev libxinerama-dev libxext-dev libxkbcommon-dev libwayland-dev \
-            libxss-dev wayland-protocols libdecor-0-dev libasound2-dev libpulse-dev libdbus-1-dev \
-            libusb-1.0-0-dev libssl-dev libvulkan-dev nasm
-          echo /usr/lib/llvm-18/bin >> "$GITHUB_PATH"
+            autoconf automake libtool libgtk-3-dev libx11-dev libx11-xcb-dev libxrandr-dev \
+            libxcursor-dev libxi-dev libxinerama-dev libxext-dev libxkbcommon-dev \
+            libwayland-dev libxss-dev wayland-protocols libdecor-0-dev libasound2-dev \
+            libpulse-dev libdbus-1-dev libusb-1.0-0-dev libssl-dev libvulkan-dev nasm
       - name: Install macOS prerequisites
         if: runner.os == 'macOS'
         run: brew install llvm pkg-config openssl@3 vulkan-loader
