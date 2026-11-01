@@ -47,8 +47,13 @@ endif()
 if(NOT LIBERTY_RECOMP_GRAINE_MAC AND
    (NOT DEFINED LIBERTY_RECOMP_TARGET_PLATFORM OR
     LIBERTY_RECOMP_TARGET_PLATFORM STREQUAL "desktop"))
+    if(NOT DEFINED ENV{VCPKG_ROOT} AND EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/vcpkg")
+        set(ENV{VCPKG_ROOT} "${CMAKE_SOURCE_DIR}/thirdparty/vcpkg")
+    endif()
+
     if(NOT DEFINED ENV{VCPKG_ROOT})
-        message(FATAL_ERROR "VCPKG_ROOT is not defined! Set it or use a platform-specific preset.")
+        message(FATAL_ERROR
+            "VCPKG_ROOT is not defined! Set it or use a platform-specific preset.")
     endif()
 endif()
 # ────────────────────────────────────────────────────────────────────────────
