@@ -100,6 +100,17 @@ if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "18.0")
     message(FATAL_ERROR "ReXGlue requires Clang 18 or newer (found ${CMAKE_CXX_COMPILER_VERSION})")
 endif()
 
+# Linux builds must use libc++ so std::expected and related C++23 library features
+# are available consistently across the Clang 18 toolchain.
+if(UNIX AND NOT APPLE)
+    string(FIND "${CMAKE_CXX_FLAGS}" "-stdlib=libc++" _rex_libcpp_idx)
+    if(_rex_libcpp_idx EQUAL -1)
+        message(FATAL_ERROR
+            "ReXGlue Linux builds require libc++ for std::expected support. "
+            "Set -DCMAKE_CXX_FLAGS='-stdlib=libc++' and link with -stdlib=libc++")
+    endif()
+endif()
+
 # Enforce x64 architecture
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "ReXGlue only supports 64‑bit architectures (x86_64 or ARM64)")
