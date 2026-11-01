@@ -203,8 +203,8 @@ jobs:
 
           grep -E '^CMAKE_CXX_STANDARD:STRING=23$' /tmp/cxx23_config_check/CMakeCache.txt
       - name: Configure desktop
-        if: runner.os != 'macOS'
         env:
+          VCPKG_ROOT: ${{ github.workspace }}/thirdparty/vcpkg
           CC: clang
           CXX: clang++
         run: |
