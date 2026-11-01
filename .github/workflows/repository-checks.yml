@@ -81,7 +81,8 @@ jobs:
             preset: linux-debug
           - os: windows-2022
             preset: x64-Clang-Debug
-          - os: macos-26
+          - os: macos-26libcurl4-openssl-dev
+
             preset: macos-debug
     runs-on: ${{ matrix.os }}
     timeout-minutes: 180
@@ -140,7 +141,7 @@ jobs:
             libxcursor-dev libxi-dev libxinerama-dev libxext-dev libxkbcommon-dev \
             libwayland-dev libxss-dev wayland-protocols libdecor-0-dev libasound2-dev \
             libpulse-dev libdbus-1-dev libusb-1.0-0-dev libssl-dev libvulkan-dev nasm \
-            protobuf-compiler libprotobuf-dev
+            protobuf-compiler libprotobuf-dev libcurl4-openssl-dev
       - name: Install macOS prerequisites
         if: runner.os == 'macOS'
         run: brew install llvm pkg-config openssl@3 vulkan-loader protobuf
