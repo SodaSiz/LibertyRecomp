@@ -177,6 +177,31 @@ jobs:
             endif()
           endif()
           EOF
+          
+      - name: Verify C++23 is active
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cat > /tmp/cxx23_check.cpp <<'EOF'
+          #include <expected>
+          int main() {
+            static_assert(__cplusplus >= 202302L, "C++23 required");
+            return 0;
+          }
+          EOF
+
+          clang++ -std=c++23 /tmp/cxx23_check.cpp -o /tmp/cxx23_check
+          /tmp/cxx23_check
+
+          cmake -S . -B /tmp/cxx23_config_check -G Ninja \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_EXTENSIONS=OFF
+
+          grep -E '^CMAKE_CXX_STANDARD:STRING=23$' /tmp/cxx23_config_check/CMakeCache.txt
       - name: Configure desktop
         if: runner.os != 'macOS'
         env:
