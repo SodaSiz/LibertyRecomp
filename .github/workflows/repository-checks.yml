@@ -202,6 +202,9 @@ jobs:
             -DCMAKE_CXX_EXTENSIONS=OFF
 
           grep -E '^CMAKE_CXX_STANDARD:STRING=23$' /tmp/cxx23_config_check/CMakeCache.txt
+          
+      - name: Initialize every public dependency and apply reviewed patches
+        run: python tools/setup_repo.py
       - name: Configure desktop
         env:
           VCPKG_ROOT: ${{ github.workspace }}/thirdparty/vcpkg
