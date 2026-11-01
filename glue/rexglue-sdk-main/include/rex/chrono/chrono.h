@@ -116,8 +116,10 @@ using XSystemClock = detail::NtSystemClock<detail::Domain::Guest>;
 
 namespace std::chrono {
 
-#ifdef __APPLE__
-// Apple libc++ does not expose clock_time_conversion or clock_cast.
+#if !defined(__cpp_lib_chrono) || __cpp_lib_chrono < 201907L
+// Some libstdc++/libc++ builds do not expose std::chrono::clock_time_conversion,
+// even when the project uses the chrono clock_cast APIs. Provide a minimal shim so
+// the Rex clocks can specialize the conversion traits on all platforms.
 template <class, class>
 struct clock_time_conversion {};
 
